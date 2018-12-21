@@ -17,4 +17,13 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
+traj.txt
+Examples/ROS/ORB_SLAM2/cam_key_frame_trajectory.txt
+Examples/ROS/ORB_SLAM2/cam_map_pts_and_keyframes.txt
+Examples/ROS/ORB_SLAM2/cam_map_pts_out.obj
+Examples/ROS/ORB_SLAM2/mono.yaml
+cam_key_frame_trajectory.txt
+cam_map_pts_and_keyframes.txt
+cam_map_pts_out.obj
+results/
 
