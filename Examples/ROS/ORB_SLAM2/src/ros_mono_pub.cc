@@ -89,7 +89,7 @@ int main(int argc, char **argv){
 	int n_images = vstrImageFilenames.size();
 
 	// Create SLAM system. It initializes all system threads and gets ready to process frames.
-	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true);
+	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, false);
 	ros::NodeHandle nodeHandler;
 	//ros::Publisher pub_cloud = nodeHandler.advertise<sensor_msgs::PointCloud2>("cloud_in", 1000);
 	ros::Publisher pub_pts_and_pose = nodeHandler.advertise<geometry_msgs::PoseArray>("pts_and_pose", 1000);
@@ -168,68 +168,45 @@ void publish(ORB_SLAM2::System &SLAM, ros::Publisher &pub_pts_and_pose,
 	}
 	if (pub_all_pts || SLAM.getLoopClosing()->loop_detected || SLAM.getTracker()->loop_detected) {
 		pub_all_pts = SLAM.getTracker()->loop_detected = SLAM.getLoopClosing()->loop_detected = false;
-		geometry_msgs::PoseArray kf_pt_array;
 		vector<ORB_SLAM2::KeyFrame*> key_frames = SLAM.getMap()->GetAllKeyFrames();
 		//! placeholder for number of keyframes
-		kf_pt_array.poses.push_back(geometry_msgs::Pose());
+		geometry_msgs::PoseArray pt_array;
+		pt_array.poses.push_back(geometry_msgs::Pose());
 		sort(key_frames.begin(), key_frames.end(), ORB_SLAM2::KeyFrame::lId);
 		unsigned int n_kf = 0;
 		for (auto key_frame : key_frames) {
-			// pKF->SetPose(pKF->GetPose()*Two);
+			cv::Mat Two = key_frames[0]->GetPoseInverse();
+			cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
+			Trw = Trw*key_frame->GetPose()*Two;
+			cv::Mat lit = SLAM.getTracker()->mlRelativeFramePoses.back();
+			cv::Mat Tcw = lit*Trw;
+			cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
+			cv::Mat twc = -Rwc*Tcw.rowRange(0, 3).col(3);
 
-			if (key_frame->isBad())
-				continue;
+			vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rwc);
 
-			cv::Mat R = key_frame->GetRotation().t();
-			vector<float> q = ORB_SLAM2::Converter::toQuaternion(R);
-			cv::Mat twc = key_frame->GetCameraCenter();
-			geometry_msgs::Pose kf_pose;
+			
 
-			kf_pose.position.x = twc.at<float>(0);
-			kf_pose.position.y = twc.at<float>(1);
-			kf_pose.position.z = twc.at<float>(2);
-			kf_pose.orientation.x = q[0];
-			kf_pose.orientation.y = q[1];
-			kf_pose.orientation.z = q[2];
-			kf_pose.orientation.w = q[3];
-			kf_pt_array.poses.push_back(kf_pose);
+			geometry_msgs::Pose camera_pose;
 
-			unsigned int n_pts_id = kf_pt_array.poses.size();
-			//! placeholder for number of points
-			kf_pt_array.poses.push_back(geometry_msgs::Pose());
-			std::set<ORB_SLAM2::MapPoint*> map_points = key_frame->GetMapPoints();
-			unsigned int n_pts = 0;
-			for (auto map_pt : map_points) {
-				if (!map_pt || map_pt->isBad()) {
-					//printf("Point %d is bad\n", pt_id);
-					continue;
-				}
-				cv::Mat pt_pose = map_pt->GetWorldPos();
-				if (pt_pose.empty()) {
-					//printf("World position for point %d is empty\n", pt_id);
-					continue;
-				}
-				geometry_msgs::Pose curr_pt;
-				//printf("wp size: %d, %d\n", wp.rows, wp.cols);
-				//pcl_cloud->push_back(pcl::PointXYZ(wp.at<float>(0), wp.at<float>(1), wp.at<float>(2)));
-				curr_pt.position.x = pt_pose.at<float>(0);
-				curr_pt.position.y = pt_pose.at<float>(1);
-				curr_pt.position.z = pt_pose.at<float>(2);
-				kf_pt_array.poses.push_back(curr_pt);
-				++n_pts;
-			}
-			geometry_msgs::Pose n_pts_msg;
-			n_pts_msg.position.x = n_pts_msg.position.y = n_pts_msg.position.z = n_pts;
-			kf_pt_array.poses[n_pts_id] = n_pts_msg;
+			camera_pose.position.x = twc.at<float>(0);
+			camera_pose.position.y = twc.at<float>(1);
+			camera_pose.position.z = twc.at<float>(2);
+
+			camera_pose.orientation.x = q[0];
+			camera_pose.orientation.y = q[1];
+			camera_pose.orientation.z = q[2];
+			camera_pose.orientation.w = q[3];
+
+			pt_array.poses.push_back(camera_pose);
+
 			++n_kf;
 		}
 		geometry_msgs::Pose n_kf_msg;
-		n_kf_msg.position.x = n_kf_msg.position.y = n_kf_msg.position.z = n_kf;
-		kf_pt_array.poses[0] = n_kf_msg;
-		kf_pt_array.header.frame_id = "1";
-		kf_pt_array.header.seq = frame_id + 1;
+		pt_array.header.frame_id = "1";
+		pt_array.header.seq = frame_id + 1;
 		printf("Publishing data for %u keyfranmes\n", n_kf);
-		pub_all_kf_and_pts.publish(kf_pt_array);
+		pub_all_kf_and_pts.publish(pt_array);
 	}
 	else if (SLAM.getTracker()->mCurrentFrame.is_keyframe) {
 		++pub_count;
@@ -304,6 +281,12 @@ void publish(ORB_SLAM2::System &SLAM, ros::Publisher &pub_pts_and_pose,
 			curr_pt.position.x = wp.at<float>(0);
 			curr_pt.position.y = wp.at<float>(1);
 			curr_pt.position.z = wp.at<float>(2);
+
+			curr_pt.orientation.x = q[0];
+			curr_pt.orientation.y = q[1];
+			curr_pt.orientation.z = q[2];
+			curr_pt.orientation.w = q[3];
+			
 			pt_array.poses.push_back(curr_pt);
 			//printf("Done getting map point %d\n", pt_id);
 		}
@@ -377,6 +360,7 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg){
 }
 
 bool parseParams(int argc, char **argv) {
+	printf("argc: %d", argc);
 	if (argc < 4){
 		cerr << endl << "Usage: rosrun ORB_SLAM2 Monopub path_to_vocabulary path_to_settings path_to_sequence/camera_id/-1 <image_topic>" << endl;
 		return 1;
@@ -408,7 +392,7 @@ bool parseParams(int argc, char **argv) {
 		LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
 	}
 	if (argc >= 5) {
-		all_pts_pub_gap = atoi(argv[4]);
+		all_pts_pub_gap = atoi(argv[5]);
 	}
 	printf("all_pts_pub_gap: %d\n", all_pts_pub_gap);
 	return 1;
