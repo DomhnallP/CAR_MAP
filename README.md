@@ -1,14 +1,11 @@
 Documentation is avalable at:
-    <b>https://github.com/abhineet123/ORB_SLAM2/blob/master/2d-grid-mapping.pdf</b>
+    <b>https://github.com/DomhnallP/SLAM_MAP/tree/Thesis-submission/Thesis-DomhnalloPoil.pdf</b>
 
 Some examples could be found at:
-    <b>https://github.com/abhineet123/ORB_SLAM2/blob/master/steps</b>
+    <b>https://github.com/DomhnallP/SLAM_MAP/tree/Thesis-submission/Examples/ROS/ORB_SLAM2</b>
 
-Demos of KITTI seq 00 Odometry Dataset:
-    <b>https://www.youtube.com/watch?v=FCd6p25131I</b>
-
-Demos of indoor scene:
-   <b>https://www.youtube.com/watch?v=HoE22wMhuKA</b>
+Demos of software running on indoor scene:
+    <b>https://www.youtube.com/watch?v=DogkiuWbcCM</b>
 _____________________________________________________________________________
 _____________________________________________________________________________
 
