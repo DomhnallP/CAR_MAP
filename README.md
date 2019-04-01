@@ -9,6 +9,19 @@ Demos of software running on indoor scene:
 _____________________________________________________________________________
 _____________________________________________________________________________
 
+In order to run this code, do the following: 
+1) install the following python libraries: OpenCV 2.4 Python, rospy, numpy, pyquaternion, pyQtGraph and cv_bridge (Most of these can be installed using pip). 
+2) compile ORB_SLAM2, following the steps below as outlied by the original author, make sure to build and compile the ROS compatible version (using the build_ros.sh script).
+3) in seperate Terminals in the following commands:
+    roscore
+    rosrun ORB_SLAM2 listener.py
+    rosrun ORB_SLAM2 pose.py
+    rosrun ORB_SLAM2 ros_mono_pub <Arguments here>
+4) the software should now be running, you can pass a video feed to the modules by broadcasting it on the topic camera/image_raw.
+_____________________________________________________________________________
+_____________________________________________________________________________
+
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
